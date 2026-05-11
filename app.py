@@ -23,21 +23,17 @@ K = 1 / (4 * np.pi * EPS0)
 # ============================================================
 def cor_carga(q):
     """Retorna cor conforme sinal da carga."""
-    if q > 1e-15:
+    if q > 1e-18:
         return "red"
-    elif q < -1e-15:
+    elif q < -1e-18:
         return "blue"
     return "black"
 
-def sinal_texto(q):
-    if q > 1e-15:
-        return "+"
-    elif q < -1e-15:
-        return "-"
-    return "0"
 
 def fmt_num(x, casas=4):
     """Formatação numérica em português."""
+    if np.isnan(x):
+        return "indefinido"
     if abs(x) >= 1e4 or (abs(x) > 0 and abs(x) < 1e-3):
         s = f"{x:.{casas}e}"
         mantissa, expoente = s.split("e")
@@ -45,11 +41,14 @@ def fmt_num(x, casas=4):
         return f"{mantissa}×10^{int(expoente)}"
     return f"{x:.{casas}f}".replace(".", ",")
 
+
 def fmt_coulomb(q_c):
     return f"{fmt_num(q_c, 4)} C"
 
+
 def fmt_microc(q_micro):
     return f"{fmt_num(q_micro, 4)} μC"
+
 
 def fig_to_base64(fig):
     buf = io.BytesIO()
@@ -59,6 +58,7 @@ def fig_to_base64(fig):
     plt.close(fig)
     return base64.b64encode(img_bytes).decode()
 
+
 def carga_superficies(condutor, a, q1, q2):
     """
     Retorna (qint, qext) em Coulomb.
@@ -66,16 +66,19 @@ def carga_superficies(condutor, a, q1, q2):
     """
     if condutor:
         if a > 0 and abs(q1) > 1e-18:
+            # Em condutor com partícula no centro:
+            # carga induzida na superfície interna é oposta a q1
             qint = -q1
-            qext = q2 - qint  # q2 = qint + qext
+            qext = q2 - qint
         else:
             qint = 0.0
             qext = q2
     else:
-        # Em isolante a carga é volumétrica (não superficial)
+        # No isolante, q2 está distribuída no volume.
         qint = 0.0
         qext = 0.0
     return qint, qext
+
 
 def Q_enc(r, a, b, q1, q2, condutor):
     """
@@ -91,7 +94,7 @@ def Q_enc(r, a, b, q1, q2, condutor):
                 return 0.0
             return q2
         else:
-            # casca condutora com possível carga central
+            # casca condutora com possível partícula central
             qint, _ = carga_superficies(condutor, a, q1, q2)
             if r < a:
                 return q1
@@ -102,12 +105,12 @@ def Q_enc(r, a, b, q1, q2, condutor):
     else:
         # isolante
         if a == 0:
-            # esfera maciça isolante com carga homogênea em volume
+            # esfera maciça isolante
             if r < b:
                 return q2 * (r**3) / (b**3)
             return q2
         else:
-            # casca esférica isolante com carga homogênea no volume da casca
+            # casca esférica isolante
             if r < a:
                 return q1
             elif r < b:
@@ -115,6 +118,7 @@ def Q_enc(r, a, b, q1, q2, condutor):
                 return q1 + q2 * frac
             else:
                 return q1 + q2
+
 
 def E_no_raio(r, a, b, q1, q2, condutor):
     """
@@ -126,6 +130,7 @@ def E_no_raio(r, a, b, q1, q2, condutor):
         return np.nan
     Q = Q_enc(r, a, b, q1, q2, condutor)
     return K * Q / (r**2)
+
 
 def gerar_curva_E(a, b, q1, q2, condutor, n=900):
     """
@@ -145,6 +150,7 @@ def gerar_curva_E(a, b, q1, q2, condutor, n=900):
 
     return rs, Es
 
+
 def desenhar_sistema(a, b, r_g, q1, q2, condutor):
     """
     Desenha esfera/casca, partícula, superfícies, cotas, superfície gaussiana,
@@ -163,10 +169,10 @@ def desenhar_sistema(a, b, r_g, q1, q2, condutor):
     cor_int = cor_carga(qint if condutor else q2)
     cor_ext = cor_carga(qext if condutor else q2)
 
-    # Limites com margem para não cortar nada
-    x_left = -2.2
-    x_right = max(2.8, Rg + 1.6)
-    y_lim = max(1.7, Rg + 0.7)
+    # Limites com margem
+    x_left = -2.3
+    x_right = max(3.1, Rg + 1.8)
+    y_lim = max(1.9, Rg + 0.9)
 
     fig, ax = plt.subplots(figsize=(12, 7))
     ax.set_aspect("equal")
@@ -242,7 +248,7 @@ def desenhar_sistema(a, b, r_g, q1, q2, condutor):
         ax.text(x_dim_a - 0.18, 0, f"a = {fmt_num(a, 3)} m", rotation=90,
                 va="center", ha="center", fontsize=11)
 
-    # -------- Vetor do campo na superfície gaussiana (ponto mais à direita) --------
+    # -------- Vetor do campo na superfície gaussiana --------
     if Rg > 0:
         x0, y0 = Rg, 0
         comprimento = 0.55
@@ -251,34 +257,42 @@ def desenhar_sistema(a, b, r_g, q1, q2, condutor):
                 x1 = x0 + comprimento
             else:
                 x1 = x0 - comprimento
+
             seta = FancyArrowPatch((x0, y0), (x1, y0), arrowstyle="->",
                                    mutation_scale=18, lw=2.2, color="purple")
             ax.add_patch(seta)
             ax.text((x0 + x1)/2, 0.12, "E", color="purple", fontsize=12, weight="bold", ha="center")
 
         # box do valor do campo
-        box_x = max(1.45, Rg + 0.2)
-        box_y = 0.95
-        ax.text(box_x, box_y,
-                f"Campo elétrico\nE(r) = {fmt_num(E_r, 4)} N/C",
-                fontsize=11,
-                ha="left", va="top",
-                bbox=dict(boxstyle="round,pad=0.5", facecolor="#f7f7f7", edgecolor="gray"))
+        box_x = max(1.45, Rg + 0.25)
+        box_y = 1.05
+        ax.text(
+            box_x,
+            box_y,
+            f"Campo elétrico\nE(r) = {fmt_num(E_r, 4)} N/C",
+            fontsize=11,
+            ha="left",
+            va="top",
+            bbox=dict(boxstyle="round,pad=0.5", facecolor="#f7f7f7", edgecolor="gray")
+        )
 
     # -------- Box com q, qint, qext --------
     q_text_x = 1.35
     q_text_y = -0.10
-    ax.text(q_text_x, q_text_y + 0.50, "Cargas", fontsize=12, weight="bold",
-            bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="gray"))
+    ax.text(
+        q_text_x, q_text_y + 0.50, "Cargas", fontsize=12, weight="bold",
+        bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="gray")
+    )
     ax.text(q_text_x, q_text_y + 0.28, f"q = {fmt_num(q1 * 1e6, 4)} μC", color=cor_part, fontsize=11)
     ax.text(q_text_x, q_text_y + 0.08, f"qint = {fmt_num(qint * 1e6, 4)} μC", color=cor_carga(qint), fontsize=11)
     ax.text(q_text_x, q_text_y - 0.12, f"qext = {fmt_num(qext * 1e6, 4)} μC", color=cor_carga(qext), fontsize=11)
 
-    # -------- Legendas discretas --------
+    # -------- Legendas --------
     ax.text(-0.15, -1.35, "Superfície gaussiana (verde tracejado)", color="green", fontsize=10)
     ax.text(-0.15, -1.52, "Vetor do campo elétrico (roxo)", color="purple", fontsize=10)
 
     return fig
+
 
 def bloco_titulo():
     c1, c2 = st.columns([1, 3])
@@ -307,16 +321,18 @@ def bloco_titulo():
             unsafe_allow_html=True
         )
 
+
 def caixa_rolavel_imagem(fig):
     img_b64 = fig_to_base64(fig)
     st.markdown(
         f"""
         <div style="overflow-x:auto; width:100%; border:1px solid #ddd; border-radius:10px; padding:8px; background:white;">
-            <img src="data:image/png;base64,{img_b64}" style="max-width:none; width:1100px; display:block; margin:auto;" />
+            <img src="data:image/png;base64,{img_b64}" style="max-width:none; width:1100px;">
         </div>
         """,
         unsafe_allow_html=True
     )
+
 
 # ============================================================
 # TÍTULO
@@ -333,16 +349,32 @@ colA, colB = st.columns([1.15, 1])
 
 with colA:
     st.subheader("Geometria e cargas")
-    a = st.slider("Raio interno a da esfera (m)", min_value=0.0, max_value=5.0, value=1.0, step=0.05)
+
+    a = st.slider(
+        "Raio interno a da esfera (m)",
+        min_value=0.0,
+        max_value=5.0,
+        value=1.0,
+        step=0.05
+    )
+
     b_min = max(a + 0.05, 0.05)
     b_default = max(b_min, 2.0)
-    b = st.slider("Raio externo b da esfera (m)", min_value=float(b_min), max_value=6.0, value=float(min(b_default, 6.0)), step=0.05)
 
+    b = st.slider(
+        "Raio externo b da esfera (m)",
+        min_value=float(b_min),
+        max_value=6.0,
+        value=float(min(b_default, 6.0)),
+        step=0.05
+    )
+
+    q1_default = 5.0 if a > 0 else 0.0
     q1_micro = st.slider(
         "Carga da partícula q1 (μC)",
         min_value=-20.0,
         max_value=20.0,
-        value=5.0 if a > 0 else 0.0,
+        value=float(q1_default),
         step=0.5,
         disabled=(a == 0)
     )
@@ -350,7 +382,13 @@ with colA:
     if a == 0:
         st.info("Como a = 0, a esfera é maciça. A partícula central q1 fica desabilitada neste modelo.")
 
-    q2_micro = st.slider("Carga da casca esférica q2 (μC)", min_value=-40.0, max_value=40.0, value=10.0, step=0.5)
+    q2_micro = st.slider(
+        "Carga da casca esférica q2 (μC)",
+        min_value=-40.0,
+        max_value=40.0,
+        value=10.0,
+        step=0.5
+    )
 
     condutor = st.toggle("Considerar esfera condutora", value=False)
     if condutor:
@@ -360,8 +398,10 @@ with colA:
 
 with colB:
     st.subheader("Superfície gaussiana")
+
     r_max_slider = max(2.5 * b, b + 0.5)
     r_default = min(max(0.75 * b, 0.05), r_max_slider)
+
     r_g = st.slider(
         "Raio da superfície gaussiana r (m) para estudo do campo elétrico",
         min_value=0.001,
@@ -383,9 +423,10 @@ with colB:
 # Conversão para SI
 q1 = q1_micro * 1e-6
 q2 = q2_micro * 1e-6
+
 qint, qext = carga_superficies(condutor, a, q1, q2)
 Q = Q_enc(r_g, a, b, q1, q2, condutor)
-A = 4 * np.pi * (r_g**2)
+A = 4 * np.pi * (r_g ** 2)
 E = E_no_raio(r_g, a, b, q1, q2, condutor)
 
 st.markdown("---")
@@ -403,7 +444,9 @@ st.markdown("---")
 # LEI DE GAUSS
 # ============================================================
 st.header("Lei de Gauss")
+
 st.latex(r"\phi = \oint \vec{E}\cdot d\vec{A} = \frac{Q}{\varepsilon_0}")
+
 st.markdown(
     f"""
 - \(\phi\) é o **fluxo elétrico** na superfície gaussiana;  
@@ -423,29 +466,43 @@ st.markdown("---")
 st.header("Carga na esfera")
 
 if not condutor:
-    st.markdown(f"**Carga distribuída homogeneamente por ser material isolante:**  \n**q₂ = {fmt_coulomb(q2)}**")
+    st.markdown(
+        f"""
+**Carga distribuída homogeneamente por ser material isolante:**  
+**q₂ = {fmt_coulomb(q2)}**
+"""
+    )
 else:
     if a == 0 or abs(q1) < 1e-18:
-        st.markdown(f"**Carga toda na superfície externa por ser material condutor:**  \n**q₂ = {fmt_coulomb(q2)}**")
+        st.markdown(
+            f"""
+**Carga toda na superfície externa por ser material condutor:**  
+**q₂ = {fmt_coulomb(q2)}**
+"""
+        )
     else:
         st.markdown(
             f"""
-A partícula no centro induz carga na superfície interna da casca condutora:  
+A partícula atrai/induz carga para a superfície interna da casca condutora:
+
 \[
 q_{{2i}} = -q_1 = -({fmt_coulomb(q1)}) = {fmt_coulomb(qint)}
 \]
 
 Como a carga total da casca é \(q_2\), então:
+
 \[
 q_2 = q_{{2i}} + q_{{2e}}
 \]
 
-Logo:
+Em seguida:
+
 \[
 q_{{2e}} = q_2 - q_{{2i}}
 \]
 
 Substituindo os valores:
+
 \[
 q_{{2e}} = {fmt_coulomb(q2)} - ({fmt_coulomb(qint)}) = {fmt_coulomb(qext)}
 \]
@@ -463,69 +520,79 @@ if not condutor:
     if a == 0:
         # esfera maciça isolante
         if r_g < b:
-            rho = q2 / ((4/3) * np.pi * b**3)
-            Q_calc = q2 * (r_g**3) / (b**3)
+            Q_calc = q2 * (r_g ** 3) / (b ** 3)
 
             st.markdown(
                 f"""
-Como a esfera é **maciça isolante**, a carga está distribuída uniformemente no volume.
+Como a superfície gaussiana está **dentro da esfera maciça isolante**:
 
 \[
 \\rho = \\frac{{q_2}}{{V_{{total}}}} = \\frac{{Q}}{{V_r}}
 \]
 
-onde \(\\rho\) é a densidade de carga volumétrica e \(V\) é o volume.
+sendo \(V\) o volume e \(\\rho\) a densidade de carga volumétrica.
 
 \[
 \\frac{{q_2}}{{\\frac{{4}}{{3}}\\pi b^3}} = \\frac{{Q}}{{\\frac{{4}}{{3}}\\pi r^3}}
 \]
 
 \[
-Q = q_2 \\frac{{r^3}}{{b^3}}
+Q = q_2\\frac{{r^3}}{{b^3}}
 \]
 
 Substituindo os valores:
+
 \[
 Q = ({fmt_coulomb(q2)})\\frac{{({fmt_num(r_g,4)})^3}}{{({fmt_num(b,4)})^3}} = {fmt_coulomb(Q_calc)}
 \]
 """
             )
         else:
-            st.markdown(f"Como a superfície gaussiana está **fora da esfera**, toda a carga é envolvida:  \n\[
+            st.markdown(
+                f"""
+Como a superfície gaussiana está **fora da esfera**, toda a carga é envolvida:
+
+\[
 Q = q_2 = {fmt_coulomb(q2)}
-\]")
+\]
+"""
+            )
     else:
         # casca isolante
         if r_g < a:
-            st.markdown(f"Como a superfície gaussiana está **na cavidade**, a carga contida é apenas a partícula central:  \n\[
+            st.markdown(
+                f"""
+Como a superfície gaussiana está **no interior da cavidade**, a carga contida é apenas a partícula central:
+
+\[
 Q = q_1 = {fmt_coulomb(q1)}
-\]")
+\]
+"""
+            )
         elif r_g < b:
-            rho = q2 / ((4/3) * np.pi * (b**3 - a**3))
-            Q_shell = q2 * ((r_g**3 - a**3) / (b**3 - a**3))
+            Q_shell = q2 * ((r_g ** 3 - a ** 3) / (b ** 3 - a ** 3))
             Q_total = q1 + Q_shell
 
             st.markdown(
                 f"""
-Como a superfície gaussiana está **dentro da espessura da casca esférica isolante**, usa-se densidade volumétrica uniforme:
+Como a superfície gaussiana está **dentro da espessura da casca esférica isolante**:
 
 \[
 \\rho = \\frac{{q_2}}{{V_{{total}}}} = \\frac{{Q_{{casca}}}}{{V_r}}
 \]
 
-com
+sendo \(V\) o volume.
 
 \[
-\\frac{{q_2}}{{\\frac{{4}}{{3}}\\pi (b^3-a^3)}} = \\frac{{Q_{{casca}}}}{{\\frac{{4}}{{3}}\\pi (r^3-a^3)}}
+\\frac{{q_2}}{{\\frac{{4}}{{3}}\\pi(b^3-a^3)}} = \\frac{{Q_{{casca}}}}{{\\frac{{4}}{{3}}\\pi(r^3-a^3)}}
 \]
-
-Portanto, a carga da parte da casca contida até o raio \(r\) é:
 
 \[
 Q_{{casca}} = q_2\\frac{{r^3-a^3}}{{b^3-a^3}}
 \]
 
 Substituindo os valores:
+
 \[
 Q_{{casca}} = ({fmt_coulomb(q2)})\\frac{{({fmt_num(r_g,4)})^3-({fmt_num(a,4)})^3}}{{({fmt_num(b,4)})^3-({fmt_num(a,4)})^3}} = {fmt_coulomb(Q_shell)}
 \]
@@ -552,8 +619,8 @@ else:
     if a == 0:
         if r_g < b:
             st.markdown(
-                f"""
-Como a esfera é **maciça condutora**, toda a carga fica na superfície externa.
+                """
+Como a superfície gaussiana está **dentro da esfera maciça condutora**, toda a carga está na superfície externa:
 
 \[
 Q = 0
@@ -563,7 +630,7 @@ Q = 0
         else:
             st.markdown(
                 f"""
-Como a superfície gaussiana está **fora da esfera**, toda a carga total do condutor é envolvida:
+Como a superfície gaussiana está **fora da esfera**, toda a carga do condutor é envolvida:
 
 \[
 Q = q_2 = {fmt_coulomb(q2)}
@@ -612,7 +679,7 @@ Q = 0
         else:
             st.markdown(
                 f"""
-Como a superfície gaussiana está **fora da casca condutora**, ela envolve a carga total:
+Como a superfície gaussiana está **fora da esfera**, ela envolve a carga total:
 
 \[
 Q = q_1 + q_2 = {fmt_coulomb(q1)} + {fmt_coulomb(q2)} = {fmt_coulomb(q1 + q2)}
@@ -641,13 +708,12 @@ st.header("Campo elétrico")
 
 st.markdown(
     """
-Lei de Gauss no caso de simetria esférica: o campo elétrico tem o mesmo módulo em toda a superfície gaussiana e é sempre paralelo ao vetor área.
+Lei de Gauss no caso de simetria: campo constante em toda a superfície gaussiana e sempre paralelo ao vetor área.
 """
 )
 
 st.latex(r"EA = \frac{Q}{\varepsilon_0}")
 st.latex(r"E = \frac{Q}{A\varepsilon_0}")
-
 st.latex(
     rf"E = \frac{{{Q:.6e}}}{{({A:.6e})({EPS0:.6e})}} = {E:.6e}\ \text{{N/C}}"
 )
@@ -660,7 +726,7 @@ if np.isfinite(E):
     else:
         st.warning("Campo elétrico nulo neste raio.")
 else:
-    st.warning("No ponto r = 0 o campo de uma carga puntiforme não é definido.")
+    st.warning("No ponto r = 0 o campo elétrico não é definido.")
 
 st.markdown("---")
 
@@ -678,7 +744,6 @@ ax2.set_facecolor("white")
 ax2.plot(rs, Es, color="#0f62fe", lw=2.2, label="E(r)")
 ax2.axhline(0, color="black", lw=1)
 
-# Marcas características
 ax2.axvline(b, color="gray", linestyle="--", lw=1.2, label="b")
 if a > 0:
     ax2.axvline(a, color="gray", linestyle=":", lw=1.2, label="a")
@@ -689,11 +754,12 @@ ax2.set_ylabel("Campo elétrico E (N/C)")
 ax2.set_title("Campo elétrico em função da distância radial")
 ax2.grid(True, alpha=0.25)
 
-# Ajuste automático de eixo y
+# Ajuste automático do eixo y
 valid = Es[np.isfinite(Es)]
 if len(valid) > 0:
     ymin = np.min(valid)
     ymax = np.max(valid)
+
     if abs(ymax - ymin) < 1e-12:
         margem = max(1.0, abs(ymax) * 0.2 + 1)
         ax2.set_ylim(ymin - margem, ymax + margem)
@@ -717,4 +783,6 @@ c2.metric("qint", f"{fmt_num(qint * 1e6, 3)} μC")
 c3.metric("qext", f"{fmt_num(qext * 1e6, 3)} μC")
 c4.metric("E(r)", f"{fmt_num(E, 4)} N/C")
 
-st.caption("Dica: para incorporar este app no Canvas LMS, hospede primeiro no Streamlit Community Cloud e depois use um iframe no Editor HTML do Canvas.")
+st.caption(
+    "Dica: para incorporar este app no Canvas LMS, hospede primeiro no Streamlit Community Cloud e depois use um iframe no Editor HTML do Canvas."
+)
