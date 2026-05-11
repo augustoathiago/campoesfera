@@ -3,7 +3,10 @@ import base64
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Simulador Campo Elétrico Esfera", layout="wide")
+st.set_page_config(
+    page_title="Simulador Campo Elétrico Esfera",
+    layout="wide"
+)
 
 BASE_DIR = Path(__file__).parent
 logo_path = BASE_DIR / "logo_maua.png"
@@ -23,6 +26,7 @@ html_template = r"""
   <title>Simulador Campo Elétrico Esfera</title>
 
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
   <script>
     window.MathJax = {
       tex: {
@@ -57,7 +61,7 @@ html_template = r"""
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1240px;
       margin: 0 auto;
       padding: 20px;
     }
@@ -119,7 +123,7 @@ html_template = r"""
 
     .grid-2 {
       display: grid;
-      grid-template-columns: 360px 1fr;
+      grid-template-columns: 380px 1fr;
       gap: 18px;
       align-items: start;
     }
@@ -155,7 +159,7 @@ html_template = r"""
     }
 
     .value-badge {
-      min-width: 88px;
+      min-width: 100px;
       text-align: right;
       font-variant-numeric: tabular-nums;
       color: var(--primary);
@@ -197,11 +201,11 @@ html_template = r"""
     }
 
     .viz-wrap {
-      min-width: 920px;
+      min-width: 950px;
     }
 
     .legend-box, .field-box {
-      fill: rgba(255,255,255,.92);
+      fill: rgba(255,255,255,.94);
       stroke: #374151;
       stroke-width: 1.2px;
       rx: 12px;
@@ -230,7 +234,18 @@ html_template = r"""
       margin-top: 10px;
     }
 
-    @media (max-width: 950px) {
+    .mini-tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
+      margin-left: 8px;
+    }
+
+    @media (max-width: 980px) {
       .grid-2 {
         grid-template-columns: 1fr;
       }
@@ -274,7 +289,7 @@ html_template = r"""
           <label for="aRange">Raio interno a da esfera (m)</label>
           <div class="row">
             <input id="aRange" type="range" min="0" max="5" step="0.1" value="1.0" />
-            <div id="aVal" class="value-badge">1.0 m</div>
+            <div id="aVal" class="value-badge">1,0 m</div>
           </div>
         </div>
 
@@ -282,7 +297,7 @@ html_template = r"""
           <label for="bRange">Raio externo b da esfera (m)</label>
           <div class="row">
             <input id="bRange" type="range" min="0.5" max="6" step="0.1" value="2.5" />
-            <div id="bVal" class="value-badge">2.5 m</div>
+            <div id="bVal" class="value-badge">2,5 m</div>
           </div>
         </div>
 
@@ -290,7 +305,7 @@ html_template = r"""
           <label for="q1Range">Carga da partícula q1 (μC)</label>
           <div class="row">
             <input id="q1Range" type="range" min="-10" max="10" step="0.1" value="3.0" />
-            <div id="q1Val" class="value-badge">3.0 μC</div>
+            <div id="q1Val" class="value-badge">3,0 μC</div>
           </div>
         </div>
 
@@ -298,7 +313,17 @@ html_template = r"""
           <label for="q2Range">Carga da casca esférica q2 (μC)</label>
           <div class="row">
             <input id="q2Range" type="range" min="-20" max="20" step="0.1" value="6.0" />
-            <div id="q2Val" class="value-badge">6.0 μC</div>
+            <div id="q2Val" class="value-badge">6,0 μC</div>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="rRange">
+            Raio r da superfície gaussiana para estudo do campo elétrico
+          </label>
+          <div class="row">
+            <input id="rRange" type="range" min="0.1" max="4.0" step="0.01" value="1.5" />
+            <div id="rVal" class="value-badge">1,50 m</div>
           </div>
         </div>
 
@@ -315,17 +340,16 @@ html_template = r"""
     </div>
 
     <div>
-
       <div class="section">
-        <h2>Imagem</h2>
+        <h2>Imagem <span class="mini-tag">r ajustável por slider ou arraste</span></h2>
         <div class="img-scroll">
           <div class="viz-wrap">
-            <svg id="viz" width="920" height="520" viewBox="0 0 920 520" role="img" aria-label="Esfera com superfície gaussiana arrastável"></svg>
+            <svg id="viz" width="950" height="540" viewBox="0 0 950 540" role="img" aria-label="Esfera com superfície gaussiana arrastável"></svg>
           </div>
         </div>
         <div class="footer-note">
-          Arraste a circunferência tracejada (superfície gaussiana) para variar o raio
-          <span class="mono">r</span>. Em telas pequenas, deslize horizontalmente a figura.
+          Arraste a circunferência tracejada (superfície gaussiana) para variar o raio <span class="mono">r</span>.
+          Em telas pequenas, deslize horizontalmente a figura.
         </div>
       </div>
 
@@ -356,9 +380,8 @@ html_template = r"""
 
       <div class="section">
         <h2>Gráfico</h2>
-        <div id="chart" style="width:100%;height:430px;"></div>
+        <div id="chart" style="width:100%;height:440px;"></div>
       </div>
-
     </div>
   </div>
 </div>
@@ -382,11 +405,13 @@ html_template = r"""
     bRange: document.getElementById('bRange'),
     q1Range: document.getElementById('q1Range'),
     q2Range: document.getElementById('q2Range'),
+    rRange: document.getElementById('rRange'),
 
     aVal: document.getElementById('aVal'),
     bVal: document.getElementById('bVal'),
     q1Val: document.getElementById('q1Val'),
     q2Val: document.getElementById('q2Val'),
+    rVal: document.getElementById('rVal'),
 
     btnIsolante: document.getElementById('btnIsolante'),
     btnCondutora: document.getElementById('btnCondutora'),
@@ -404,10 +429,10 @@ html_template = r"""
     chart: document.getElementById('chart')
   };
 
-  const center = { x: 320, y: 250 };
-  const outerPx = 160;
-  const minRPx = 14;
-  const maxRPx = 260;
+  const center = { x: 330, y: 260 };
+  const outerPx = 165;
+  const minRPx = 12;
+  const maxRPx = 280;
 
   function colorFor(qMicro) {
     if (qMicro > 1e-12) return '#c81e1e';
@@ -450,6 +475,19 @@ html_template = r"""
     return Math.max(lo, Math.min(hi, x));
   }
 
+  function rMaxPhysics() {
+    return Math.max(state.b * (maxRPx / outerPx), state.b + 1.2);
+  }
+
+  function syncRRangeBounds() {
+    const rMax = rMaxPhysics();
+    els.rRange.min = "0.10";
+    els.rRange.max = rMax.toFixed(2);
+    els.rRange.step = "0.01";
+    state.r = clamp(state.r, 0.10, rMax);
+    els.rRange.value = state.r.toFixed(2);
+  }
+
   function currentQ1uC() {
     return state.a > 0 ? state.q1uC : 0;
   }
@@ -463,8 +501,8 @@ html_template = r"""
     }
 
     if (state.a > 0 && Math.abs(q1) > 1e-12) {
-      const qint = -q1;
-      const qext = q2 - qint;
+      const qint = -q1;         // indução correta
+      const qext = q2 - qint;   // q2 = qint + qext
       return { qParticle: q1, qint, qext };
     }
 
@@ -490,6 +528,7 @@ html_template = r"""
       return q1 + q2;
     }
 
+    // condutora
     if (a === 0) {
       if (r < b) return 0;
       return q2;
@@ -521,6 +560,11 @@ html_template = r"""
           : 'interior_condutor_macico';
       }
       return 'exterior';
+    }
+
+    if (r < a) return 'cavidade';
+    if (r < b) return state.material === 'isolante' ? 'espessura_isolante' : 'espessura_condutora';
+    return 'exterior';
   }
 
   function areaOfGaussian(r) {
@@ -528,12 +572,12 @@ html_template = r"""
   }
 
   function scaleRadiusToPx(r) {
-    const rMax = state.b * (maxRPx / outerPx);
+    const rMax = rMaxPhysics();
     return (r / rMax) * maxRPx;
   }
 
   function scalePxToRadius(px) {
-    const rMax = state.b * (maxRPx / outerPx);
+    const rMax = rMaxPhysics();
     return (px / maxRPx) * rMax;
   }
 
@@ -543,13 +587,13 @@ html_template = r"""
       els.aRange.value = state.a.toFixed(1);
     }
 
-    const rMax = state.b * (maxRPx / outerPx);
-    state.r = clamp(state.r, 0.12, rMax);
+    syncRRangeBounds();
 
-    els.aVal.textContent = state.a.toFixed(1) + ' m';
-    els.bVal.textContent = state.b.toFixed(1) + ' m';
-    els.q1Val.textContent = state.q1uC.toFixed(1) + ' μC';
-    els.q2Val.textContent = state.q2uC.toFixed(1) + ' μC';
+    els.aVal.textContent = state.a.toFixed(1).replace('.', ',') + ' m';
+    els.bVal.textContent = state.b.toFixed(1).replace('.', ',') + ' m';
+    els.q1Val.textContent = state.q1uC.toFixed(1).replace('.', ',') + ' μC';
+    els.q2Val.textContent = state.q2uC.toFixed(1).replace('.', ',') + ' μC';
+    els.rVal.textContent = state.r.toFixed(2).replace('.', ',') + ' m';
 
     els.btnIsolante.classList.toggle('active', state.material === 'isolante');
     els.btnCondutora.classList.toggle('active', state.material === 'condutora');
@@ -567,6 +611,7 @@ html_template = r"""
       note += ' No material isolante, a carga q2 é assumida homogênea no volume da esfera/casca.';
     }
 
+    note += ' O raio r também pode ser ajustado pelo controle deslizante em “Parâmetros”.';
     els.paramNote.textContent = note;
   }
 
@@ -582,18 +627,19 @@ html_template = r"""
     const charges = surfaceCharges();
     const qint = charges.qint;
     const qext = charges.qext;
+
     const Qc = enclosedChargeC(state.r);
     const E = fieldAt(state.r);
 
-    function add(tag, attrs, parent) {
-      const p = parent || svg;
+    function add(tag, attrs = {}, parent = svg) {
       const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-      Object.entries(attrs || {}).forEach(([k, v]) => el.setAttribute(k, v));
-      p.appendChild(el);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      parent.appendChild(el);
       return el;
     }
 
-    const defs = add('defs', {});
+    // defs
+    const defs = add('defs');
     const markerOut = add('marker', {
       id: 'arrowHead',
       markerWidth: '10',
@@ -603,17 +649,17 @@ html_template = r"""
       orient: 'auto',
       markerUnits: 'strokeWidth'
     }, defs);
-
     add('path', { d: 'M0,0 L0,6 L9,3 z', fill: '#111827' }, markerOut);
 
+    // título interno
     add('text', {
-      x: 24,
-      y: 34,
+      x: 24, y: 34,
       fill: '#374151',
       'font-size': '16',
       'font-weight': '700'
     }).textContent = 'Figura da esfera e superfície gaussiana';
 
+    // região material
     if (state.material === 'isolante') {
       if (state.a > 0) {
         add('circle', {
@@ -648,6 +694,7 @@ html_template = r"""
       }
     }
 
+    // superfícies
     if (state.a > 0) {
       add('circle', {
         cx: center.x, cy: center.y, r: aPx,
@@ -664,6 +711,7 @@ html_template = r"""
       'stroke-width': '6'
     });
 
+    // partícula central
     add('circle', {
       cx: center.x, cy: center.y, r: 10,
       fill: colorFor(q1),
@@ -671,6 +719,7 @@ html_template = r"""
       'stroke-width': '1.2'
     });
 
+    // superfície gaussiana
     const gauss = add('circle', {
       id: 'gaussian',
       cx: center.x, cy: center.y, r: gPx,
@@ -691,6 +740,7 @@ html_template = r"""
       cursor: 'ew-resize'
     });
 
+    // linha de raio
     add('line', {
       x1: center.x, y1: center.y,
       x2: center.x + gPx, y2: center.y,
@@ -707,6 +757,7 @@ html_template = r"""
       'font-weight': '700'
     }).textContent = 'r = ' + state.r.toFixed(2) + ' m';
 
+    // vetor E
     const pX = center.x + gPx;
     const pY = center.y;
     const arrowMag = clamp(34 + 18 * Math.log10(1 + Math.abs(E)), 0, 95);
@@ -731,14 +782,16 @@ html_template = r"""
       }).textContent = 'E';
     } else {
       add('text', {
-        x: pX + 14, y: pY - 10,
+        x: pX + 14,
+        y: pY - 10,
         fill: '#111827',
         'font-size': '16',
         'font-weight': '700'
       }).textContent = 'E = 0';
     }
 
-    const dimX = 92;
+    // cotas
+    const dimX = 95;
 
     add('line', {
       x1: dimX, y1: center.y - bPx,
@@ -774,7 +827,7 @@ html_template = r"""
     }).textContent = 'b = ' + state.b.toFixed(2) + ' m';
 
     if (state.a > 0) {
-      const dimX2 = 134;
+      const dimX2 = 138;
       add('line', {
         x1: dimX2, y1: center.y - aPx,
         x2: dimX2, y2: center.y + aPx,
@@ -799,76 +852,75 @@ html_template = r"""
       }).textContent = 'a = ' + state.a.toFixed(2) + ' m';
     }
 
-    add('rect', { x: 640, y: 40, width: 240, height: 152, class: 'legend-box' });
+    // box cargas
+    add('rect', { x: 655, y: 36, width: 255, height: 160, class: 'legend-box' });
     add('text', {
-      x: 660, y: 68,
+      x: 675, y: 66,
       fill: '#111827',
       'font-size': '18',
       'font-weight': '700'
     }).textContent = 'Cargas';
 
     const lines = [
-      { label: 'q',    val: q1,   y: 98  },
-      { label: 'qint', val: qint, y: 128 },
-      { label: 'qext', val: qext, y: 158 }
+      { label: 'q',    val: q1,   y: 100 },
+      { label: 'qint', val: qint, y: 132 },
+      { label: 'qext', val: qext, y: 164 }
     ];
 
     lines.forEach(item => {
       add('text', {
-        x: 660, y: item.y,
+        x: 675, y: item.y,
         fill: '#111827',
         'font-size': '16'
       }).textContent = item.label + ' = ';
 
       add('text', {
-        x: 712, y: item.y,
+        x: 732, y: item.y,
         fill: colorFor(item.val),
         'font-size': '16',
         'font-weight': '700'
       }).textContent = item.val.toFixed(2) + ' μC';
     });
 
-    add('rect', { x: 640, y: 230, width: 240, height: 122, class: 'field-box' });
+    // box campo
+    add('rect', { x: 655, y: 230, width: 255, height: 126, class: 'field-box' });
     add('text', {
-      x: 660, y: 258,
+      x: 675, y: 258,
       fill: '#111827',
       'font-size': '18',
       'font-weight': '700'
     }).textContent = 'Na superfície gaussiana';
 
     add('text', {
-      x: 660, y: 288,
+      x: 675, y: 290,
       fill: '#111827',
       'font-size': '16'
     }).textContent = 'Q = ' + (Qc * 1e6).toFixed(3) + ' μC';
 
     add('text', {
-      x: 660, y: 318,
+      x: 675, y: 322,
       fill: '#111827',
       'font-size': '16'
     }).textContent = 'r = ' + state.r.toFixed(3) + ' m';
 
     add('text', {
-      x: 660, y: 348,
+      x: 675, y: 354,
       fill: colorFor(Qc * 1e6),
       'font-size': '16',
       'font-weight': '700'
     }).textContent = 'E = ' + fmt(E, 4) + ' N/C';
 
     add('text', {
-      x: 140, y: 470,
+      x: 148,
+      y: 490,
       fill: '#374151',
       'font-size': '15'
     }).textContent = state.material === 'isolante'
       ? 'Região do material com carga volumétrica homogênea'
       : 'Região condutora (cargas em equilíbrio eletrostático)';
 
+    // arraste da superfície gaussiana
     let dragging = false;
-
-    const onDown = (evt) => {
-      dragging = true;
-      evt.preventDefault();
-    };
 
     const onMove = (evt) => {
       if (!dragging) return;
@@ -879,18 +931,24 @@ html_template = r"""
       const dx = sp.x - center.x;
       const dy = sp.y - center.y;
       const px = clamp(Math.sqrt(dx * dx + dy * dy), minRPx, maxRPx);
-      state.r = scalePxToRadius(px);
+      state.r = clamp(scalePxToRadius(px), 0.10, rMaxPhysics());
       render();
     };
 
     const onUp = () => {
       dragging = false;
+      window.removeEventListener('pointermove', onMove);
+    };
+
+    const onDown = (evt) => {
+      dragging = true;
+      evt.preventDefault();
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp, { once: true });
     };
 
     gauss.addEventListener('pointerdown', onDown);
     handle.addEventListener('pointerdown', onDown);
-    svg.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp, { once: true });
   }
 
   function renderMath() {
@@ -1031,7 +1089,7 @@ html_template = r"""
     const b = state.b;
     const rAtual = state.r;
 
-    const rMax = Math.max(b * 1.6, b + 1.6);
+    const rMax = Math.max(b * 1.65, b + 1.6);
     const rs = [];
     const Es = [];
     const n = 500;
@@ -1158,7 +1216,8 @@ html_template = r"""
     renderChart();
   }
 
-  els.aRange.addEventListener('input', e => {
+  // Eventos
+  els.aRange.addEventListener('input', (e) => {
     state.a = parseFloat(e.target.value);
     if (state.a >= state.b) {
       state.b = Math.min(6, state.a + 0.1);
@@ -1167,7 +1226,7 @@ html_template = r"""
     render();
   });
 
-  els.bRange.addEventListener('input', e => {
+  els.bRange.addEventListener('input', (e) => {
     state.b = parseFloat(e.target.value);
     if (state.b <= state.a) {
       state.a = Math.max(0, state.b - 0.1);
@@ -1176,13 +1235,18 @@ html_template = r"""
     render();
   });
 
-  els.q1Range.addEventListener('input', e => {
+  els.q1Range.addEventListener('input', (e) => {
     state.q1uC = parseFloat(e.target.value);
     render();
   });
 
-  els.q2Range.addEventListener('input', e => {
+  els.q2Range.addEventListener('input', (e) => {
     state.q2uC = parseFloat(e.target.value);
+    render();
+  });
+
+  els.rRange.addEventListener('input', (e) => {
+    state.r = parseFloat(e.target.value);
     render();
   });
 
@@ -1210,4 +1274,5 @@ html_template = r"""
 """
 
 html = html_template.replace("__LOGO_SRC__", logo_src)
-components.html(html, height=3600, scrolling=True)
+
+components.html(html, height=4300, scrolling=True)
