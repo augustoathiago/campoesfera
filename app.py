@@ -18,10 +18,10 @@ st.set_page_config(
 EPS0 = 8.854e-12  # C²/(N·m²)
 K = 1 / (4 * np.pi * EPS0)
 
-# Novo intervalo pedido:
-# a >= 0,5 m e b = a + 0,5 m
+# Faixas dos sliders
 A_MIN = 0.5
 A_MAX = 5.5
+B_MAX = 6.0
 
 # ============================================================
 # FUNÇÕES AUXILIARES
@@ -72,20 +72,19 @@ def latex_sci(x, sig=4):
     """
     Formata número para LaTeX no estilo:
     1.2345 \\times 10^{-6}
-    sem usar notação e.
     """
     if x == 0:
         return "0"
     expo = int(np.floor(np.log10(abs(x))))
     mant = x / (10 ** expo)
-    return f"{mant:.{sig}f} \\\\times 10^{{{expo}}}"
+    return f"{mant:.{sig}f} \\times 10^{{{expo}}}"
 
 
 def latex_num(x, casas=4):
     """
     Número para LaTeX:
     - usa notação decimal comum quando apropriado
-    - usa mantissa x 10^expo quando necessário
+    - usa mantissa \\times 10^expo quando necessário
     """
     if x is None or (isinstance(x, float) and np.isnan(x)):
         return "\\text{indefinido}"
@@ -161,7 +160,7 @@ def E_no_raio(r, a, b, q1, q2, condutor):
     return K * Q / (r**2)
 
 
-def gerar_curva_E(a, b, q1, q2, condutor, r_ref, n=1500):
+def gerar_curva_E(a, b, q1, q2, condutor, r_ref, n=1600):
     r_min = 1e-4
     r_max = max(2.2 * b, b + 0.5, r_ref, 2.5 * b)
     rs = np.linspace(r_min, r_max, n)
@@ -176,13 +175,13 @@ def desenhar_sistema(a, b, r_g, q1, q2, condutor):
     # ========================================================
     # ESCALA DA IMAGEM
     # ========================================================
-    # Mantemos escala fixa para a esfera (mesmo "zoom" para a e b),
-    # expandindo apenas se r_g ficar muito grande para não cortar a figura.
-    y_half = max(6.6, r_g + 0.8)
+    # Escala relativamente fixa para os raios da esfera,
+    # mas expandindo horizontal/verticalmente se r_g for muito grande
+    y_half = max(5.6, r_g + 0.5)
     x_left = -6.8
-    x_right = max(13.8, r_g + 4.5)
+    x_right = max(13.6, r_g + 4.2)
 
-    fig, ax = plt.subplots(figsize=(15, 6.8))
+    fig, ax = plt.subplots(figsize=(15, 5.4))
     ax.set_aspect("equal")
     ax.set_xlim(x_left, x_right)
     ax.set_ylim(-y_half, y_half)
@@ -268,9 +267,9 @@ def desenhar_sistema(a, b, r_g, q1, q2, condutor):
         )
         ax.text((x0 + x1) / 2, 0.38, "E", color="purple", fontsize=13, weight="bold", ha="center")
 
-    # -------- Box do valor do campo --------
+    # -------- Box do valor do campo (movido para cima) --------
     box_x = min(max(r_g + 0.9, 6.9), x_right - 2.8)
-    box_y = min(2.8, y_half - 0.6)
+    box_y = min(3.8, y_half - 0.4)
 
     ax.text(
         box_x, box_y,
@@ -292,11 +291,11 @@ def desenhar_sistema(a, b, r_g, q1, q2, condutor):
     if abs(qext) > 1e-18:
         linhas.append(("qext", f"{fmt_num(qext * 1e6, 4)} μC", cor_ext))
 
-    x_box = max(6.8, box_x - 0.2)
-    y_top_box = -0.2
+    x_box = max(6.8, box_x - 0.15)
+    y_top_box = 0.65  # movido para cima
 
     ax.text(
-        x_box, y_top_box + 1.45,
+        x_box, y_top_box + 1.55,
         "Cargas",
         fontsize=12,
         weight="bold",
@@ -304,13 +303,18 @@ def desenhar_sistema(a, b, r_g, q1, q2, condutor):
     )
 
     for i, (rotulo, valor, cor) in enumerate(linhas):
-        ax.text(x_box, y_top_box + 0.95 - 0.8 * i, f"{rotulo} = {valor}", color=cor, fontsize=11)
+        ax.text(x_box, y_top_box + 1.0 - 0.8 * i, f"{rotulo} = {valor}", color=cor, fontsize=11)
 
-    # -------- Legendas --------
-    legenda_y1 = -y_half + 0.9
-    legenda_y2 = -y_half + 0.35
-    ax.text(-0.8, legenda_y1, "Superfície gaussiana (verde tracejado)", color="green", fontsize=10)
-    ax.text(-0.8, legenda_y2, "Vetor do campo elétrico (roxo)", color="purple", fontsize=10)
+    # -------- Legenda inferior --------
+    # movida para baixo "pulando duas linhas"
+    legenda_y = -y_half + 0.20
+    ax.text(
+        -0.8,
+        legenda_y,
+        "Superfície gaussiana (verde tracejado)",
+        color="green",
+        fontsize=10
+    )
 
     return fig
 
@@ -348,7 +352,7 @@ def caixa_rolavel_imagem(fig):
     st.markdown(
         f"""
         <div style="overflow-x:auto; width:100%; border:1px solid #ddd; border-radius:10px; padding:8px; background:white;">
-            <img src="data:image/png;base64,{img_b64}" style="display:block; width:1350px; max-width:none; height:auto;" />
+            data:image/png;base64,{img_b64}
         </div>
         """,
         unsafe_allow_html=True
@@ -401,18 +405,15 @@ with colA:
         step=0.05
     )
 
-    # Regra pedida:
-    b = a + 0.5
+    b_min = round(a + 0.5, 2)
+    b_default = max(b_min, 2.0)
 
-    st.markdown(
-        f"""
-        <div style="padding:10px 14px; border:1px solid #cccccc; border-radius:10px; background:#f7f7f7; color:#111111; margin-bottom:8px;">
-            <b>Raio externo b da esfera (m):</b> {fmt_num(b, 2)}
-            <br>
-            <span style="font-size:0.92rem;">Regra adotada: <b>b = a + 0,5 m</b></span>
-        </div>
-        """,
-        unsafe_allow_html=True
+    b = st.slider(
+        "Raio externo b da esfera (m)",
+        min_value=float(b_min),
+        max_value=B_MAX,
+        value=float(min(b_default, B_MAX)),
+        step=0.05
     )
 
     q1_micro = st.slider(
@@ -614,11 +615,15 @@ st.markdown("---")
 # GRÁFICO
 # ============================================================
 st.header("Gráfico")
-st.write("O eixo vertical é ajustado automaticamente em escala linear para melhorar a visualização do comportamento geral do campo.")
+st.write(
+    "O eixo vertical é ajustado automaticamente em escala linear, "
+    "com truncamento visual apenas dos picos extremos muito próximos de r = 0, "
+    "para facilitar a visualização do comportamento geral do campo."
+)
 
 rs, Es = gerar_curva_E(a, b, q1, q2, condutor, r_g)
 
-fig2, ax2 = plt.subplots(figsize=(10, 5.6))
+fig2, ax2 = plt.subplots(figsize=(10, 5.8))
 fig2.patch.set_facecolor("white")
 ax2.set_facecolor("white")
 
@@ -635,20 +640,28 @@ ax2.set_ylabel("Campo elétrico E (N/C)")
 ax2.set_title("Campo elétrico em função da distância radial")
 ax2.grid(True, alpha=0.25)
 
-# Ajuste automático linear do eixo y:
 valid = Es[np.isfinite(Es)]
 if len(valid) > 0:
-    # ignora extremos muito concentrados próximos de r=0 para melhorar visualização
-    abs_valid = np.abs(valid)
-    y_ref = np.percentile(abs_valid, 98)
+    # Ajuste linear do eixo y, reduzindo impacto dos extremos muito altos
+    p2 = np.percentile(valid, 2)
+    p98 = np.percentile(valid, 98)
 
-    # garante que o valor selecionado também caiba
-    y_ref = max(y_ref, abs(E) if np.isfinite(E) else 0.0)
+    # Garante que o valor no raio selecionado esteja visível
+    if np.isfinite(E):
+        p2 = min(p2, E)
+        p98 = max(p98, E)
 
-    if y_ref < 1e-12:
-        y_ref = 1.0
+    # Se o intervalo ficar muito pequeno
+    if abs(p98 - p2) < 1e-12:
+        margem = max(1.0, abs(p98) * 0.2 + 1)
+        ymin = p2 - margem
+        ymax = p98 + margem
+    else:
+        margem = 0.10 * (p98 - p2)
+        ymin = p2 - margem
+        ymax = p98 + margem
 
-    ax2.set_ylim(-1.15 * y_ref, 1.15 * y_ref)
+    ax2.set_ylim(ymin, ymax)
 
 ax2.legend(loc="best")
 st.pyplot(fig2, use_container_width=True)
