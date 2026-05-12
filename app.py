@@ -67,7 +67,7 @@ def format_num_ptbr(value: float, unidade: str = "", sig: int = 4) -> str:
 
 def format_latex_num(value: float, sig: int = 4) -> str:
     """
-    Formatação para expressões LaTeX:
+    Formatação para LaTeX:
     - evita notação e-06
     - usa \\times 10^{n}
     - usa vírgula decimal como 8{,}8
@@ -168,31 +168,35 @@ def electric_field_curve(Q_c: float, R: float, isolante: bool, eps0: float = EPS
 # ============================================================
 # Desenho da figura principal
 # ============================================================
-def draw_dimension_left(ax, x, radius_value, label_value, color="#444444"):
+def draw_dimension_left(ax, x, radius_value, label_value, y_shift=0.0, color="#444444"):
     """
     Cota vertical à esquerda do círculo, mostrando apenas o valor.
+    Texto na vertical.
     """
-    ax.plot([x, x], [0, radius_value], color=color, linewidth=1.8)
+    ax.plot([x, x], [0, radius_value], color=color, linewidth=1.8, zorder=6)
+
     tick = 0.16
-    ax.plot([x - tick, x + tick], [0, 0], color=color, linewidth=1.8)
-    ax.plot([x - tick, x + tick], [radius_value, radius_value], color=color, linewidth=1.8)
+    ax.plot([x - tick, x + tick], [0, 0], color=color, linewidth=1.8, zorder=6)
+    ax.plot([x - tick, x + tick], [radius_value, radius_value], color=color, linewidth=1.8, zorder=6)
 
     ax.annotate(
         "",
         xy=(x, radius_value),
         xytext=(x, 0),
         arrowprops=dict(arrowstyle="<->", lw=1.8, color=color, shrinkA=0, shrinkB=0),
+        zorder=6,
     )
 
     ax.text(
-        x - 0.28,
-        radius_value / 2,
+        x - 0.35,
+        radius_value / 2 + y_shift,
         label_value,
-        fontsize=11.5,
+        fontsize=11.2,
         va="center",
-        ha="right",
+        ha="center",
+        rotation=90,
         color="#111827",
-        bbox=dict(boxstyle="round,pad=0.20", fc="white", ec="none", alpha=0.95),
+        bbox=dict(boxstyle="round,pad=0.18", fc="white", ec="none", alpha=0.95),
         zorder=15,
     )
 
@@ -202,10 +206,10 @@ def build_sphere_figure(R: float, r: float, Q_c: float, isolante: bool, E_at_r: 
     fill_color = alpha_fill_from_charge(Q_c)
 
     # Escala fixa
-    xlim = (-8.8, 11.2)
-    ylim = (-7.8, 8.6)
+    xlim = (-9.8, 11.2)
+    ylim = (-7.8, 8.8)
 
-    fig, ax = plt.subplots(figsize=(12.2, 7.6))
+    fig, ax = plt.subplots(figsize=(12.6, 7.8))
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
     ax.set_xlim(*xlim)
@@ -255,22 +259,42 @@ def build_sphere_figure(R: float, r: float, Q_c: float, isolante: bool, E_at_r: 
     )
     ax.add_patch(gauss)
 
-    # Cotas à esquerda, apenas com valores
-    left_base = -max(R, r) - 0.95
-    x_dim_r = left_base
-    x_dim_R = left_base - 1.05
+    # --------------------------------------------------------
+    # Cotas à esquerda, sem sobreposição
+    # --------------------------------------------------------
+    # Separação horizontal maior entre elas
+    left_base = -max(R, r) - 1.15
+    x_dim_near = left_base
+    x_dim_far = left_base - 1.45
 
-    draw_dimension_left(ax, x_dim_R, R, format_num_ptbr(R, "m", sig=4))
-    draw_dimension_left(ax, x_dim_r, r, format_num_ptbr(r, "m", sig=4))
+    # Pequeno deslocamento vertical quando R e r são próximos
+    y_shift_R = 0.0
+    y_shift_r = 0.0
+    if abs(R - r) < 0.60:
+        y_shift_R = 0.45
+        y_shift_r = -0.45
 
+    # Mantém a maior cota mais à esquerda e a menor mais próxima
+    if R >= r:
+        x_dim_R = x_dim_far
+        x_dim_r = x_dim_near
+    else:
+        x_dim_R = x_dim_near
+        x_dim_r = x_dim_far
+
+    draw_dimension_left(ax, x_dim_R, R, format_num_ptbr(R, "m", sig=4), y_shift=y_shift_R)
+    draw_dimension_left(ax, x_dim_r, r, format_num_ptbr(r, "m", sig=4), y_shift=y_shift_r)
+
+    # --------------------------------------------------------
     # Boxes acima dos círculos
+    # --------------------------------------------------------
     q_box_text = (
         f"Q = {format_num_ptbr(Q_c * 1e6, 'µC', sig=4)}\n"
         f"Q = {format_num_ptbr(Q_c, 'C', sig=4)}"
     )
     ax.text(
-        -6.9,
-        7.85,
+        -7.6,
+        8.05,
         q_box_text,
         fontsize=12,
         color=edge_color,
@@ -286,8 +310,8 @@ def build_sphere_figure(R: float, r: float, Q_c: float, isolante: bool, E_at_r: 
         gauss_desc = "Superfície gaussiana (tracejada)\nEsfera condutora"
 
     ax.text(
-        1.4,
-        7.85,
+        1.8,
+        8.05,
         gauss_desc,
         fontsize=11.5,
         color="#374151",
@@ -297,7 +321,9 @@ def build_sphere_figure(R: float, r: float, Q_c: float, isolante: bool, E_at_r: 
         zorder=20,
     )
 
+    # --------------------------------------------------------
     # Vetor de campo no ponto mais à direita da superfície gaussiana
+    # --------------------------------------------------------
     px, py = r, 0
     E_mag = abs(E_at_r)
 
@@ -389,12 +415,6 @@ st.markdown(
             color: #111827 !important;
         }
 
-        .sec-subtitulo {
-            font-size: 0.98rem;
-            color: #374151 !important;
-            margin-bottom: 0.8rem;
-        }
-
         div[data-testid="stSlider"] label p {
             font-size: 1.02rem !important;
             font-weight: 700 !important;
@@ -413,7 +433,7 @@ st.markdown(
 
         .img-scroll-wrap img {
             display: block;
-            width: 1150px;
+            width: 1180px;
             max-width: none;
             height: auto;
         }
@@ -424,6 +444,13 @@ st.markdown(
 
         div[data-testid="stLatex"] {
             overflow-x: auto;
+        }
+
+        /* melhora ajuste do gráfico em telas menores */
+        @media (max-width: 768px) {
+            .img-scroll-wrap img {
+                width: 1050px;
+            }
         }
     </style>
     """,
@@ -542,7 +569,7 @@ plt.close(fig)
 st.markdown(
     f"""
     <div class="img-scroll-wrap">
-        <img src="data:image/png;base64,{img_b64}" alt="Representação da esfera e da superfície gaussiana">
+        <img src="data:image/png;base64,{img_b64}" alt="Figura da esfera e superfície gaussiana">
     </div>
     """,
     unsafe_allow_html=True,
@@ -699,21 +726,23 @@ fig_plot.update_layout(
     template=None,
     plot_bgcolor="white",
     paper_bgcolor="white",
-    margin=dict(l=90, r=25, t=20, b=45),
+    margin=dict(l=95, r=18, t=18, b=42),
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    height=430,
+    height=360,
     font=dict(color="#111827"),
+    dragmode=False,
 )
 
 fig_plot.update_xaxes(
     title_text="Distância r (m)",
-    title_font=dict(size=16),
+    title_font=dict(size=15),
     automargin=True,
     showgrid=True,
     gridcolor="#e5e7eb",
     zeroline=True,
     zerolinecolor="#9ca3af",
     range=[0, float(max(r_vals))],
+    fixedrange=True,
 )
 
 if np.min(E_vals) < 0 < np.max(E_vals):
@@ -723,8 +752,8 @@ else:
 
 fig_plot.update_yaxes(
     title_text="Campo elétrico E (N/C)",
-    title_font=dict(size=16),
-    title_standoff=20,
+    title_font=dict(size=15),
+    title_standoff=18,
     automargin=True,
     showgrid=True,
     gridcolor="#e5e7eb",
@@ -733,8 +762,19 @@ fig_plot.update_yaxes(
     range=y_range,
     exponentformat="power",
     showexponent="all",
+    fixedrange=True,
 )
 
-st.plotly_chart(fig_plot, use_container_width=True, config={"displayModeBar": False})
+st.plotly_chart(
+    fig_plot,
+    use_container_width=True,
+    config={
+        "displayModeBar": False,
+        "responsive": True,
+        "scrollZoom": False,
+        "doubleClick": False,
+        "showTips": False,
+    },
+)
 
 st.markdown("</div>", unsafe_allow_html=True)
