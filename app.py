@@ -305,9 +305,9 @@ def build_sphere_figure(R: float, r: float, Q_c: float, isolante: bool, E_at_r: 
     )
 
     if isolante:
-        gauss_desc = "Superfície gaussiana (tracejada)\nEsfera isolante"
+        gauss_desc = "Superfície gaussiana (linha tracejada)\nEsfera isolante (linha contínua)"
     else:
-        gauss_desc = "Superfície gaussiana (tracejada)\nEsfera condutora"
+        gauss_desc = "Superfície gaussiana (linha tracejada)\nEsfera condutora (linha contínua)"
 
     ax.text(
         1.8,
@@ -591,7 +591,7 @@ st.markdown(
 - **φ** é o **fluxo elétrico** na superfície gaussiana.  
 - **E** é o **campo elétrico**.  
 - **A** é a **área** da superfície gaussiana.  
-- **q<sub>gauss</sub>** é a **carga contida** na superfície gaussiana.  
+- **q<sub>gauss</sub>** é a **carga contida** dentro da superfície gaussiana.  
 - **ε₀** é a **permissividade do vácuo**.
     """,
     unsafe_allow_html=True,
@@ -608,19 +608,19 @@ st.markdown('<div class="bloco">', unsafe_allow_html=True)
 st.markdown('<div class="sec-titulo">Carga q<sub>gauss</sub> contida na superfície gaussiana</div>', unsafe_allow_html=True)
 
 if r >= R:
-    st.markdown("**(i) Se a superfície gaussiana estiver fora da esfera:**")
+    st.markdown("**Como a superfície gaussiana está fora da esfera:**")
     st.latex(r"q_{\mathrm{gauss}} = Q")
     st.latex(
         rf"q_{{\mathrm{{gauss}}}} = {format_latex_num(Q_uC, 4)}\ \mu C = {format_latex_num(Q_c, 4)}\ C"
     )
 
 elif not isolante:
-    st.markdown("**(ii) Se a superfície gaussiana estiver dentro da esfera condutora:**")
+    st.markdown("**Como a superfície gaussiana está dentro da esfera condutora:**")
     st.latex(r"q_{\mathrm{gauss}} = 0")
     st.markdown("Toda a carga está na superfície externa.")
 
 else:
-    st.markdown("**(iii) Se a superfície gaussiana estiver dentro da esfera isolante:**")
+    st.markdown("**Como a superfície gaussiana está dentro da esfera isolante, com distribuição uniforme de carga:**")
     st.latex(r"\rho = \frac{Q}{V_{\mathrm{total}}} = \frac{q_{\mathrm{gauss}}}{V_r}")
     st.latex(r"\frac{Q}{\frac{4}{3}\pi R^3} = \frac{q_{\mathrm{gauss}}}{\frac{4}{3}\pi r^3}")
     st.latex(r"q_{\mathrm{gauss}} = Q\frac{r^3}{R^3}")
@@ -638,7 +638,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 # Área da superfície gaussiana
 # ============================================================
 st.markdown('<div class="bloco">', unsafe_allow_html=True)
-st.markdown('<div class="sec-titulo">Área da superfície gaussiana</div>', unsafe_allow_html=True)
+st.markdown('<div class="sec-titulo">Área A da superfície gaussiana</div>', unsafe_allow_html=True)
 
 st.latex(r"A = 4\pi r^2")
 st.latex(
@@ -652,7 +652,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 # Campo elétrico
 # ============================================================
 st.markdown('<div class="bloco">', unsafe_allow_html=True)
-st.markdown('<div class="sec-titulo">Campo elétrico</div>', unsafe_allow_html=True)
+st.markdown('<div class="sec-titulo">Campo elétrico E</div>', unsafe_allow_html=True)
 
 st.markdown(
     "Lei de Gauss no caso de simetria, campo constante **E** em toda superfície gaussiana e sempre paralelo ao vetor área."
