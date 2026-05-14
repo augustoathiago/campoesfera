@@ -513,7 +513,7 @@ c1, c2, c3 = st.columns([1.35, 1.35, 1.1], vertical_alignment="center")
 
 with c1:
     R = st.slider(
-        "Raio externo R da esfera (m)",
+        "Raio R da esfera (m)",
         min_value=float(R_MIN),
         max_value=float(R_MAX),
         step=0.01,
